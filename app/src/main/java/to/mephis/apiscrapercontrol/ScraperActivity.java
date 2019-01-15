@@ -19,20 +19,35 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.view.KeyEvent;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static android.graphics.Color.GRAY;
 import static android.graphics.Color.GREEN;
@@ -48,13 +63,16 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
      * Shared pref store..
      */
 
+    private static boolean polling_enabled = false;
+
     public static final String pref_btMac = "btMac";
     public static final String pref_apiUrl = "apiUrl";
     public static final String pref_apiKey = "apiKey";
+    public static final String pref_Polling = "polling";
 
     public static String apiUrl = "";
-
-    public static boolean state_scraping = false;
+    public static String apiKey = "";
+    public static boolean disableScraping = false;
 
     // UI references.
     private EditText mBtMac;
@@ -64,6 +82,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     private Button mBtnScraperState;
     private View mProgressView;
     private View mLoginFormView;
+    private Switch mEnablePolling;
 
     // We do this to publish it to our other Classes
     private static ScraperActivity instance;
@@ -82,25 +101,40 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         mApiSecret = (EditText) findViewById(R.id.apikey);
         mBtnScraperState = (Button) findViewById(R.id.btn_scraperStatus);
         mDebugBox = (TextView) findViewById(R.id.debugbox);
+        mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
 
-        mBtMac.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-                if (id == EditorInfo.IME_ACTION_DONE || id == EditorInfo.IME_NULL) {
-                    checkScraper();
-                    return true;
-                }
-                return false;
-            }
-        });
 
-        Button m_btn_scraperStatus = (Button) findViewById(R.id.btn_scraperStatus);
-        m_btn_scraperStatus.setOnClickListener(new OnClickListener() {
+
+//        Button m_btn_scraperStatus = (Button) findViewById(R.id.btn_scraperStatus);
+
+        mBtnScraperState.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                checkScraper();
+                switchScraper();
             }
         });
+
+        mEnablePolling.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                // do something, the isChecked will be
+                // true if the switch is in the On position
+                if (isChecked) {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Polling ScraperApiController enabled",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    scheduleAlarm();
+                } else {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Polling ScraperApiController disabled",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    cancelAlarm();
+                }
+                writePolling(isChecked);
+            }
+        });
+
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
@@ -109,8 +143,9 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         mApiUrl.setText(getapiUrl().toString());
         mApiSecret.setText(getapiKey().toString());
 
-        //Setup Timer for scraper API Polling
-        scheduleAlarm();
+        mEnablePolling.setChecked(getPolling());
+
+        doPoll();
     }
 
     // Setup a recurring alarm every half hour
@@ -120,13 +155,14 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         // Create a PendingIntent to be triggered when the alarm goes off
         final PendingIntent pIntent = PendingIntent.getBroadcast(this, alarmReceiver.REQUEST_CODE,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        // Setup periodic alarm every every half hour from this point onwards
         long firstMillis = System.currentTimeMillis(); // alarm is set right away
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         // First parameter is the type: ELAPSED_REALTIME, ELAPSED_REALTIME_WAKEUP, RTC_WAKEUP
         // Interval can be INTERVAL_FIFTEEN_MINUTES, INTERVAL_HALF_HOUR, INTERVAL_HOUR, INTERVAL_DAY
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis,
-                (60*1000), pIntent);
+//        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis,
+//                (1*1000), pIntent);
+
+        alarm.setRepeating(AlarmManager.RTC_WAKEUP,firstMillis,(15*1000),pIntent);
     }
 
     public void cancelAlarm() {
@@ -139,7 +175,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
     public void setScrapeState(boolean state)
     {
-        if (state) {
+        if (!state) {
             mBtnScraperState.setText("Scraper is running");
             mBtnScraperState.setBackgroundColor(GREEN);
 
@@ -147,7 +183,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             mBtnScraperState.setText("Scraper is throttling");
             mBtnScraperState.setBackgroundColor(GRAY);
         }
-        state_scraping = state;
+        disableScraping = state;
     }
 
     public String getBtMac()
@@ -181,6 +217,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     {
         SharedPreferences sp = getSharedPreferences(pref_apiKey,0);
         String str = sp.getString("myStore","00:00:00:00:00:00");
+        apiKey = str;
         return str;
     }
     public void writeApiKey(String pref)
@@ -190,15 +227,92 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         editor.commit();
     }
 
+    public boolean getPolling()
+    {
+        SharedPreferences sp = getSharedPreferences(pref_Polling,0);
+        boolean polling = sp.getBoolean("myStore",false);
+        return polling;
+    }
+    public void writePolling(boolean pref)
+    {
+        SharedPreferences.Editor editor = getSharedPreferences(pref_Polling,0).edit();
+        editor.putBoolean("myStore", pref);
+        editor.commit();
+    }
+
+    public static void doPoll() {
+        RequestQueue requestQueue;
+        //init rest client
+        requestQueue = Volley.newRequestQueue(getInstance());
+        // Request a string response from the provided URL.
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(ScraperActivity.apiUrl + "state",
+                new Response.Listener<JSONArray>() {
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        try {
+                            JSONObject state = response.getJSONObject(0);
+                            disableScraping = state.getBoolean("disablescraping");
+                            ScraperActivity.getInstance().setScrapeState(disableScraping);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("volley", "error" + error.toString());
+                    }
+                }) {
+            @Override
+            public Map<String,String> getHeaders() throws AuthFailureError {
+                HashMap<String, String> headers = new HashMap<String, String>();
+                //headers.put("Content-Type", "application/json");
+                headers.put("apikey", ScraperActivity.apiKey);
+                return headers;
+            }
+        };
+        requestQueue.add(jsonArrayRequest);
+    }
+
+    public static void setScraper(boolean doScrape) {
+
+        //Perform http post
+        RequestQueue requestQueue;
+        requestQueue = Volley.newRequestQueue(getInstance());
+        JSONObject json = new JSONObject();
+        try {
+            json.put("command","switch");
+            json.put("value",!disableScraping);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, apiUrl + "switch", json,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.i("POST Response", response.toString());
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //serverResp.setText("Error getting response");
+                Log.e("POST Error", "Post error");
+            }
+        });
+        //jsonObjectRequest.setTag(REQ_TAG);
+        requestQueue.add(jsonObjectRequest);
+
+
+    }
 
     /**
      * Attempts to sign in or register the account specified by the login form.
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
-    private void checkScraper() {
-
-        RequestQueue requestQueue;
+    private void switchScraper() {
 
         // Reset errors.
         mBtMac.setError(null);
@@ -218,6 +332,36 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         boolean cancel = false;
         View focusView = null;
 
+
+        setScraper(disableScraping);
+
+
+/**        //Perform http post
+        RequestQueue requestQueue;
+        requestQueue = Volley.newRequestQueue(getApplicationContext());
+        JSONObject json = new JSONObject();
+        try {
+            json.put("command","switch");
+            json.put("value",!disableScraping);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, apiurl + "switch", json,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.i("POST Response", response.toString());
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                //serverResp.setText("Error getting response");
+                Log.e("POST Error", "Post error");
+            }
+        });
+        //jsonObjectRequest.setTag(REQ_TAG);
+        requestQueue.add(jsonObjectRequest); */
     }
 
     /**

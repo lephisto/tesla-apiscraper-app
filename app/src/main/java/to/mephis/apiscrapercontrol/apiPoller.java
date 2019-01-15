@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.Context;
 import android.util.Log;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -14,6 +15,9 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -65,18 +69,18 @@ public class apiPoller extends IntentService {
      * parameters.
      */
     private void handleApiRequest() {
-        RequestQueue requestQueue;
+        /**RequestQueue requestQueue;
         //init rest client
         requestQueue = Volley.newRequestQueue(getApplicationContext());
         // Request a string response from the provided URL.
-        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(ScraperActivity.apiUrl + "/state",
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(ScraperActivity.apiUrl + "state",
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
                         try {
                             JSONObject state = response.getJSONObject(0);
-                            state_scraping = state.getBoolean("scraping");
-                            ScraperActivity.getInstance().setScrapeState(state_scraping);
+                            disableScraping = state.getBoolean("scraping");
+                            ScraperActivity.getInstance().setScrapeState(disableScraping);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -87,7 +91,18 @@ public class apiPoller extends IntentService {
                     public void onErrorResponse(VolleyError error) {
                         Log.e("volley", "error" + error.toString());
                     }
-                });
-        requestQueue.add(jsonArrayRequest);
+                }) {
+            @Override
+            public Map<String,String> getHeaders() throws AuthFailureError {
+                HashMap<String, String> headers = new HashMap<String, String>();
+                //headers.put("Content-Type", "application/json");
+                headers.put("apikey", ScraperActivity.apiKey);
+                return headers;
+            }
+        };
+
+
+        requestQueue.add(jsonArrayRequest);*/
+        ScraperActivity.doPoll();
     }
 }

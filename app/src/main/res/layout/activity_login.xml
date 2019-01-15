@@ -64,10 +64,11 @@
             </android.support.design.widget.TextInputLayout>
 
             <android.support.design.widget.TextInputLayout
-                app:passwordToggleEnabled="true"
                 android:id="@+id/layout_password"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                app:passwordToggleEnabled="true">
+
                 <EditText
                     android:id="@+id/apikey"
                     android:layout_width="match_parent"
@@ -83,19 +84,25 @@
                 android:id="@+id/btn_scraperStatus"
                 style="?android:textAppearanceSmall"
                 android:layout_width="match_parent"
-                android:hint="Tap to Turn Scraping on/off"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:hint="Tap to Turn Scraping on/off"
                 android:text="Retrieving Scraper State..."
                 android:textStyle="bold" />
 
+            <Switch
+                android:id="@+id/swEnablePolling"
+                android:layout_width="match_parent"
+                android:layout_height="41dp"
+                android:text="Enable Polling" />
+
             <TextView
                 android:id="@+id/debugbox"
-                android:gravity="left"
-                android:layout_height="fill_parent"
                 android:layout_width="wrap_content"
-                android:maxLines="4"
+                android:layout_height="fill_parent"
+                android:gravity="left"
                 android:lines="4"
+                android:maxLines="4"
                 android:text="Debug: "></TextView>
 
         </LinearLayout>
