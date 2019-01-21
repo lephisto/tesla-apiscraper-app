@@ -2,8 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="to.mephis.apiscrapercontrol">
 
-    <!-- To auto-complete the email text field in the login form with the user's emails -->
+    <!-- Need Internet Connection -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Need to be notified when Blueooth devices connect -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -11,8 +16,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
@@ -34,7 +39,7 @@
         <receiver
             android:name=".alarmReceiver"
             android:enabled="true"
-            android:exported="true"></receiver>
+            android:exported="true" />
     </application>
 
 </manifest>

@@ -4,9 +4,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -22,6 +26,7 @@ import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -51,6 +56,7 @@ import java.util.Map;
 
 import static android.graphics.Color.GRAY;
 import static android.graphics.Color.GREEN;
+import static java.lang.Thread.sleep;
 
 
 /**
@@ -73,6 +79,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public static String apiUrl = "";
     public static String apiKey = "";
     public static boolean disableScraping = false;
+    public static String carAsleep = "unknown";
 
     // UI references.
     private EditText mBtMac;
@@ -92,6 +99,16 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        //Look at BT
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        registerReceiver(mAclConnectReceiver, filter);
+
+
+
         super.onCreate(savedInstanceState);
         instance = this;
         setContentView(R.layout.activity_login);
@@ -103,6 +120,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         mDebugBox = (TextView) findViewById(R.id.debugbox);
         mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
 
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
 
 //        Button m_btn_scraperStatus = (Button) findViewById(R.id.btn_scraperStatus);
@@ -144,8 +162,9 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         mApiSecret.setText(getapiKey().toString());
 
         mEnablePolling.setChecked(getPolling());
-
-        doPoll();
+        if (mEnablePolling.isChecked()) {
+            doPoll();
+        }
     }
 
     // Setup a recurring alarm every half hour
@@ -176,11 +195,11 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public void setScrapeState(boolean state)
     {
         if (!state) {
-            mBtnScraperState.setText("Scraper is running");
+            mBtnScraperState.setText("Scraper is running, car " + carAsleep);
             mBtnScraperState.setBackgroundColor(GREEN);
 
         } else {
-            mBtnScraperState.setText("Scraper is throttling");
+            mBtnScraperState.setText("Scraper is inactive, last known");
             mBtnScraperState.setBackgroundColor(GRAY);
         }
         disableScraping = state;
@@ -202,7 +221,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public String getapiUrl()
     {
         SharedPreferences sp = getSharedPreferences(pref_apiUrl,0);
-        String str = sp.getString("myStore","00:00:00:00:00:00");
+        String str = sp.getString("myStore","https://yourapiurl/");
         apiUrl = str;
         return str;
     }
@@ -216,7 +235,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public String getapiKey()
     {
         SharedPreferences sp = getSharedPreferences(pref_apiKey,0);
-        String str = sp.getString("myStore","00:00:00:00:00:00");
+        String str = sp.getString("myStore","YourApiKey");
         apiKey = str;
         return str;
     }
@@ -252,6 +271,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                         try {
                             JSONObject state = response.getJSONObject(0);
                             disableScraping = state.getBoolean("disablescraping");
+                            carAsleep = state.getString("state");
                             ScraperActivity.getInstance().setScrapeState(disableScraping);
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -282,7 +302,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         requestQueue = Volley.newRequestQueue(getInstance());
         JSONObject json = new JSONObject();
         try {
-            json.put("command","switch");
+            json.put("command","scrape");
             json.put("value",!disableScraping);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -298,13 +318,12 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             @Override
             public void onErrorResponse(VolleyError error) {
                 //serverResp.setText("Error getting response");
-                Log.e("POST Error", "Post error");
+                Log.e("POST Error", "Post error: " + error.getMessage());
             }
         });
         //jsonObjectRequest.setTag(REQ_TAG);
         requestQueue.add(jsonObjectRequest);
-
-
+        doPoll();
     }
 
     /**
@@ -363,6 +382,27 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         //jsonObjectRequest.setTag(REQ_TAG);
         requestQueue.add(jsonObjectRequest); */
     }
+
+
+
+
+    private BroadcastReceiver mAclConnectReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
+                Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
+                btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
+            }
+            if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
+                    || BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(intent.getAction())) {
+                Log.i("btDevice", "ACL Disconnect Device: "+device.getName() + " " + device.getAddress());
+                btConnectNotification.notify(getApplicationContext(),"BT Disconnect",1);
+                //closeConnection();
+            }
+        }
+    };
 
     /**
      * Shows the progress UI and hides the login form.
@@ -475,7 +515,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
             try {
                 // Simulate network access.
-                Thread.sleep(2000);
+                sleep(2000);
             } catch (InterruptedException e) {
                 return false;
             }

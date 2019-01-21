@@ -40,7 +40,7 @@
                     android:id="@+id/btMac"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="apiScraper Car BT Mac"
+                    android:hint="apiScraper Car BT Name"
                     android:inputType="text"
                     android:maxLines="1"
                     android:singleLine="true" />
@@ -94,7 +94,13 @@
                 android:id="@+id/swEnablePolling"
                 android:layout_width="match_parent"
                 android:layout_height="41dp"
-                android:text="Enable Polling" />
+                android:text="Enable Polling Scrapecontroller" />
+
+            <Switch
+                android:id="@+id/swEnableBTProximity"
+                android:layout_width="match_parent"
+                android:layout_height="41dp"
+                android:text="BT Proximity enables Scraper" />
 
             <TextView
                 android:id="@+id/debugbox"
