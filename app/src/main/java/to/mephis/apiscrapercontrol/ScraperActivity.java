@@ -230,6 +230,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         SharedPreferences.Editor editor = getSharedPreferences(pref_apiUrl,0).edit();
         editor.putString("myStore", pref);
         editor.commit();
+        apiUrl = pref;
+        doPoll();
     }
 
     public String getapiKey()
@@ -244,6 +246,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         SharedPreferences.Editor editor = getSharedPreferences(pref_apiKey,0).edit();
         editor.putString("myStore", pref);
         editor.commit();
+        apiKey = pref;
+        doPoll();
     }
 
     public boolean getPolling()
