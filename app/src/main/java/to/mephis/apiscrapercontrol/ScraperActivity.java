@@ -272,6 +272,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
         switch (item.getItemId()) {
             case R.id.menu_refresh:
+                Log.e("option", "refresh");
                 doPoll();
                 return true;
             default:
@@ -422,6 +423,10 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Log.e("volley", "error" + error.toString());
+                        Toast toast = Toast.makeText(instance,
+                                "Connection Problem: " + error.toString(),
+                                Toast.LENGTH_SHORT);
+                        toast.show();
                     }
                 }) {
             @Override
