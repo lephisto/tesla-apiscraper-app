@@ -285,7 +285,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.e("volley", "error" + error.toString());
+                        Log.e("volley", "error " + error.toString());
+                        ScraperActivity.getInstance().mDebugBox.setText("Connection error: " + error.toString());
                     }
                 }) {
             @Override
@@ -335,6 +336,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         };
         //jsonObjectRequest.setTag(REQ_TAG);
         requestQueue.add(jsonObjectRequest);
+
+        // XXX: In fact we need to have a delay here or fix the server code to update state right away
         doPoll();
     }
 
