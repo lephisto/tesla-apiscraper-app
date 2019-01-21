@@ -115,15 +115,12 @@
                 android:layout_height="41dp"
                 android:text="BT Proximity lost disables Scraper" />
 
+            <ProgressBar
+                android:id="@+id/prgProximityTimeout"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"/>
 
-            <TextView
-                android:id="@+id/debugbox"
-                android:layout_width="wrap_content"
-                android:layout_height="fill_parent"
-                android:gravity="left"
-                android:lines="4"
-                android:maxLines="4"
-                android:text="Debug: "></TextView>
 
         </LinearLayout>
     </ScrollView>

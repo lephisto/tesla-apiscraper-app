@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -32,6 +33,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -59,7 +61,6 @@ import java.util.Map;
 import static android.graphics.Color.GRAY;
 import static android.graphics.Color.GREEN;
 import static java.lang.Thread.sleep;
-
 
 /**
  * Mainscreen for setting apiScraper Properties
@@ -97,6 +98,11 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     private Switch mEnablePolling;
     private Switch mEnableBTProxmity;
     private Switch mDisableBTProxmity;
+    private ProgressBar mpbBtTimeout;
+
+    CountDownTimer countDownTimer;
+    int time = 4 * 60 * 1000; // 4 minutes
+    int interval = 1000; // 1 second
 
     //toolbar
     private Toolbar toolbar;
@@ -107,6 +113,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public static ScraperActivity getInstance() {
         return instance;
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,10 +135,10 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         mApiSecret = (EditText) findViewById(R.id.apikey);
         mBtnScraperState = (Button) findViewById(R.id.btn_scraperStatus);
         mbtnSaveSettings = (Button) findViewById(R.id.btn_saveSettings);
-        mDebugBox = (TextView) findViewById(R.id.debugbox);
         mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
         mEnableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximity);
         mDisableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximityLost);
+        mpbBtTimeout = (ProgressBar) findViewById(R.id.prgProximityTimeout);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
@@ -151,42 +158,38 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
         mEnablePolling.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                // do something, the isChecked will be
-                // true if the switch is in the On position
-                if (isChecked) {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Polling ScraperApiController enabled",
-                            Toast.LENGTH_SHORT);
-                    toast.show();
-                    scheduleAlarm();
-                } else {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Polling ScraperApiController disabled",
-                            Toast.LENGTH_SHORT);
-                    toast.show();
-                    cancelAlarm();
-                }
-                writePolling(isChecked);
+            if (isChecked) {
+                Toast toast = Toast.makeText(getApplicationContext(),
+                        "Polling ScraperApiController enabled",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+                scheduleAlarm();
+            } else {
+                Toast toast = Toast.makeText(getApplicationContext(),
+                        "Polling ScraperApiController disabled",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+                cancelAlarm();
+            }
+            writePolling(isChecked);
             }
         });
 
         mEnableBTProxmity.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Activate on Proximity enabled",
-                            Toast.LENGTH_SHORT);
-                    toast.show();
-                    writeStartOnPromity(true);
-                } else {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Activate Proxmity disabled",
-                            Toast.LENGTH_SHORT);
-                    toast.show();
-                    writeStartOnPromity(false);
-                }
-
+            if (isChecked) {
+                Toast toast = Toast.makeText(getApplicationContext(),
+                        "Activate on Proximity enabled",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+            } else {
+                Toast toast = Toast.makeText(getApplicationContext(),
+                        "Activate Proxmity disabled",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+            }
+            writeStartOnPromity(isChecked);
             }
         });
 
@@ -198,20 +201,35 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                             "Deactivate on Proximity lost enabled",
                             Toast.LENGTH_SHORT);
                     toast.show();
-                    writeStopOnProximityLost(true);
                 } else {
                     Toast toast = Toast.makeText(getApplicationContext(),
                             "Deactivate on Proximity lost disabled",
                             Toast.LENGTH_SHORT);
                     toast.show();
-                    writeStopOnProximityLost(false);
+                    stopBtTimeout();
+                    mpbBtTimeout.setProgress(0);
                 }
+                writeStopOnProximityLost(isChecked);
             }
         });
 
-        mLoginFormView = findViewById(R.id.login_form);
-//        mProgressView = findViewById(R.id.login_progress);
+        //setProgressBarValues();
 
+        countDownTimer = new CountDownTimer(time, interval) {
+            public void onTick(long millisUntilFinished) {
+                //tvTimer.setText(getDateFromMillis(millisUntilFinished));
+                int progress = (int) millisUntilFinished / interval;
+                mpbBtTimeout.setProgress(mpbBtTimeout.getMax() - progress);
+            }
+
+            public void onFinish() {
+                setScraper(false);
+                mpbBtTimeout.setProgress(0);
+//                setProgressBarValues();
+            }
+        };
+
+        mLoginFormView = findViewById(R.id.login_form);
         mBtName.setText(getBtName().toString());
         mApiUrl.setText(getapiUrl().toString());
         mApiSecret.setText(getapiKey().toString());
@@ -222,9 +240,25 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         } else {
             mBtnScraperState.setText("Polling disabled..");
         }
+
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
     }
+
+    private void setProgressBarValues() {
+        mpbBtTimeout.setMax(time / interval);
+        mpbBtTimeout.setProgress(time / interval);
+    }
+
+    public void startBtTimeout() {
+        setProgressBarValues();
+        countDownTimer.start();
+    }
+
+    public void stopBtTimeout() {
+        countDownTimer.cancel();
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -493,11 +527,17 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                             "Proximity lost detected...",
                             Toast.LENGTH_SHORT);
                     toast.show();
-                    setScraper(false);
+                    //setScraper(false);
+                    setProgressBarValues();
+                    startBtTimeout();
                 }
             }
         }
     };
+
+//    public Timer(is) {
+        //
+//    }
 
 
     /**
