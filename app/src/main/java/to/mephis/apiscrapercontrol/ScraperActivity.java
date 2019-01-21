@@ -324,7 +324,15 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                 //serverResp.setText("Error getting response");
                 Log.e("POST Error", "Post error: " + error.getMessage());
             }
-        });
+        }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                HashMap<String, String> headers = new HashMap<String, String>();
+                //headers.put("Content-Type", "application/json");
+                headers.put("apikey", ScraperActivity.apiKey);
+                return headers;
+            }
+        };
         //jsonObjectRequest.setTag(REQ_TAG);
         requestQueue.add(jsonObjectRequest);
         doPoll();
