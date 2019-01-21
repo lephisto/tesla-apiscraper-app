@@ -272,7 +272,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
         switch (item.getItemId()) {
             case R.id.menu_refresh:
-                Log.e("option", "refresh");
+                Log.i("Toolbar", "refresh");
                 doPoll();
                 return true;
             default:
@@ -501,6 +501,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         writeBtMac(btmac);
         writeApiUrl(apiurl);
         writeApiKey(apisecret);
+        apiUrl = apiurl;
+        apiKey = apisecret;
         boolean cancel = false;
         View focusView = null;
     }
