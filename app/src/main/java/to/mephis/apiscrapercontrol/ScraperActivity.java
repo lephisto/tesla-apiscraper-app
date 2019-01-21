@@ -4,7 +4,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.AlarmManager;
-import android.app.Notification;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -23,7 +22,10 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
@@ -75,6 +77,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public static final String pref_apiUrl = "apiUrl";
     public static final String pref_apiKey = "apiKey";
     public static final String pref_Polling = "polling";
+    public static final String pref_StartOnProximity = "startOnProximity";
+    public static final String pref_StopOnProximityLost = "stopOnProximityLost";
 
     public static String apiUrl = "";
     public static String apiKey = "";
@@ -82,14 +86,21 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     public static String carAsleep = "unknown";
 
     // UI references.
-    private EditText mBtMac;
+    private EditText mBtName;
     private EditText mApiUrl;
     private EditText mApiSecret;
     private TextView mDebugBox;
     private Button mBtnScraperState;
+    private Button mbtnSaveSettings;
     private View mProgressView;
     private View mLoginFormView;
     private Switch mEnablePolling;
+    private Switch mEnableBTProxmity;
+    private Switch mDisableBTProxmity;
+
+    //toolbar
+    private Toolbar toolbar;
+
 
     // We do this to publish it to our other Classes
     private static ScraperActivity instance;
@@ -107,28 +118,34 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         registerReceiver(mAclConnectReceiver, filter);
 
-
-
         super.onCreate(savedInstanceState);
         instance = this;
         setContentView(R.layout.activity_login);
 
-        mBtMac = (EditText) findViewById(R.id.btMac);
+
+        mBtName = (EditText) findViewById(R.id.btMac);
         mApiUrl = (EditText) findViewById(R.id.apiurl);
         mApiSecret = (EditText) findViewById(R.id.apikey);
         mBtnScraperState = (Button) findViewById(R.id.btn_scraperStatus);
+        mbtnSaveSettings = (Button) findViewById(R.id.btn_saveSettings);
         mDebugBox = (TextView) findViewById(R.id.debugbox);
         mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
+        mEnableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximity);
+        mDisableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximityLost);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
-
-
-//        Button m_btn_scraperStatus = (Button) findViewById(R.id.btn_scraperStatus);
 
         mBtnScraperState.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 switchScraper();
+            }
+        });
+
+        mbtnSaveSettings.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveSettings();
             }
         });
 
@@ -153,17 +170,78 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             }
         });
 
+        mEnableBTProxmity.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Activate on Proximity enabled",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    writeStartOnPromity(true);
+                } else {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Activate Proxmity disabled",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    writeStartOnPromity(false);
+                }
+
+            }
+        });
+
+        mDisableBTProxmity.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Deactivate on Proximity lost enabled",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    writeStopOnProximityLost(true);
+                } else {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Deactivate on Proximity lost disabled",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    writeStopOnProximityLost(false);
+                }
+            }
+        });
 
         mLoginFormView = findViewById(R.id.login_form);
-        mProgressView = findViewById(R.id.login_progress);
+//        mProgressView = findViewById(R.id.login_progress);
 
-        mBtMac.setText(getBtMac().toString());
+        mBtName.setText(getBtName().toString());
         mApiUrl.setText(getapiUrl().toString());
         mApiSecret.setText(getapiKey().toString());
 
         mEnablePolling.setChecked(getPolling());
         if (mEnablePolling.isChecked()) {
             doPoll();
+        } else {
+            mBtnScraperState.setText("Polling disabled..");
+        }
+        mEnableBTProxmity.setChecked(getStartOnProximity());
+        mDisableBTProxmity.setChecked(getStopOnProximityLost());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(final MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.menu_refresh:
+                doPoll();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -199,13 +277,13 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             mBtnScraperState.setBackgroundColor(GREEN);
 
         } else {
-            mBtnScraperState.setText("Scraper is inactive, last known");
+            mBtnScraperState.setText("Scraper is inactive, press to activate..");
             mBtnScraperState.setBackgroundColor(GRAY);
         }
         disableScraping = state;
     }
 
-    public String getBtMac()
+    public String getBtName()
     {
         SharedPreferences sp = getSharedPreferences(pref_btMac,0);
         String str = sp.getString("myStore","00:00:00:00:00:00");
@@ -258,6 +336,34 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         editor.putBoolean("myStore", pref);
         editor.commit();
     }
+
+    public boolean getStartOnProximity()
+    {
+        SharedPreferences sp = getSharedPreferences(pref_StartOnProximity,0);
+        boolean startOnProximity = sp.getBoolean("myStore",false);
+        return startOnProximity;
+    }
+    public void writeStartOnPromity(boolean pref)
+    {
+        SharedPreferences.Editor editor = getSharedPreferences(pref_StartOnProximity,0).edit();
+        editor.putBoolean("myStore", pref);
+        editor.commit();
+    }
+
+    public boolean getStopOnProximityLost()
+    {
+        SharedPreferences sp = getSharedPreferences(pref_StopOnProximityLost,0);
+        boolean stopOnProximityLost = sp.getBoolean("myStore",false);
+        return stopOnProximityLost;
+    }
+    public void writeStopOnProximityLost(boolean pref)
+    {
+        SharedPreferences.Editor editor = getSharedPreferences(pref_StopOnProximityLost,0).edit();
+        editor.putBoolean("myStore", pref);
+        editor.commit();
+    }
+
+
 
     public static void doPoll() {
         RequestQueue requestQueue;
@@ -340,55 +446,24 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
      * errors are presented and no actual login attempt is made.
      */
     private void switchScraper() {
-
         // Reset errors.
-        mBtMac.setError(null);
+        // Store values at the time of the login attempt.
+        setScraper(disableScraping);
+    }
+
+    private void saveSettings() {
+        //Save Settings
+        mBtName.setError(null);
         mApiUrl.setError(null);
         mApiSecret.setError(null);
-
-        // Store values at the time of the login attempt.
-        String btmac = mBtMac.getText().toString();
+        String btmac = mBtName.getText().toString();
         String apiurl = mApiUrl.getText().toString();
         String apisecret = mApiSecret.getText().toString();
-
-        //Save Settings
         writeBtMac(btmac);
         writeApiUrl(apiurl);
         writeApiKey(apisecret);
-
         boolean cancel = false;
         View focusView = null;
-
-
-        setScraper(disableScraping);
-
-
-/**        //Perform http post
-        RequestQueue requestQueue;
-        requestQueue = Volley.newRequestQueue(getApplicationContext());
-        JSONObject json = new JSONObject();
-        try {
-            json.put("command","switch");
-            json.put("value",!disableScraping);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, apiurl + "switch", json,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        Log.i("POST Response", response.toString());
-
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                //serverResp.setText("Error getting response");
-                Log.e("POST Error", "Post error");
-            }
-        });
-        //jsonObjectRequest.setTag(REQ_TAG);
-        requestQueue.add(jsonObjectRequest); */
     }
 
 
@@ -401,16 +476,29 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
 
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
                 Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
-                btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
+                //btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
+                if ((device.getName().equals(mBtName.getText().toString())) & mEnableBTProxmity.isChecked()) {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Proximity Detected...",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    setScraper(true);
+                }
             }
             if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
                     || BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(intent.getAction())) {
                 Log.i("btDevice", "ACL Disconnect Device: "+device.getName() + " " + device.getAddress());
-                btConnectNotification.notify(getApplicationContext(),"BT Disconnect",1);
-                //closeConnection();
+                if ((device.getName().equals(mBtName.getText().toString())) & mDisableBTProxmity.isChecked()) {
+                    Toast toast = Toast.makeText(getApplicationContext(),
+                            "Proximity lost detected...",
+                            Toast.LENGTH_SHORT);
+                    toast.show();
+                    setScraper(false);
+                }
             }
         }
     };
+
 
     /**
      * Shows the progress UI and hides the login form.

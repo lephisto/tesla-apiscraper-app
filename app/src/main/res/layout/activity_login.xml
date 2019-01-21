@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -12,25 +13,19 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context=".ScraperActivity">
 
-    <!-- Login progress -->
-    <ProgressBar
-        android:id="@+id/login_progress"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:visibility="gone" />
-
     <ScrollView
         android:id="@+id/login_form"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+
 
         <LinearLayout
             android:id="@+id/email_login_form"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+
 
             <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
@@ -79,6 +74,17 @@
                     android:singleLine="true" />
             </android.support.design.widget.TextInputLayout>
 
+            <Button
+                android:id="@+id/btn_saveSettings"
+                style="?android:textAppearanceSmall"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="Save Settings..."
+                android:text="Save Settings"
+                android:textStyle="bold" />
+
+
 
             <Button
                 android:id="@+id/btn_scraperStatus"
@@ -89,6 +95,7 @@
                 android:hint="Tap to Turn Scraping on/off"
                 android:text="Retrieving Scraper State..."
                 android:textStyle="bold" />
+
 
             <Switch
                 android:id="@+id/swEnablePolling"
@@ -101,6 +108,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="41dp"
                 android:text="BT Proximity enables Scraper" />
+
+            <Switch
+                android:id="@+id/swEnableBTProximityLost"
+                android:layout_width="match_parent"
+                android:layout_height="41dp"
+                android:text="BT Proximity lost disables Scraper" />
+
 
             <TextView
                 android:id="@+id/debugbox"
