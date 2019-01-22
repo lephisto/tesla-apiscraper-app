@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.CountDownTimer;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -476,6 +477,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         };
         //jsonObjectRequest.setTag(REQ_TAG);
         requestQueue.add(jsonObjectRequest);
+        SystemClock.sleep(1000);
         doPoll();
     }
 
