@@ -1,8 +1,5 @@
 package to.mephis.apiscrapercontrol;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothDevice;
@@ -13,17 +10,9 @@ import android.content.IntentFilter;
 import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
 
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
 
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -54,14 +43,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static android.graphics.Color.GRAY;
 import static android.graphics.Color.GREEN;
-import static java.lang.Thread.sleep;
 
 /**
  * Mainscreen for setting apiScraper Properties
@@ -207,8 +193,6 @@ public class ScraperActivity extends AppCompatActivity  {
             }
         });
 
-        //setProgressBarValues();
-
         countDownTimer = new CountDownTimer(time, interval) {
             public void onTick(long millisUntilFinished) {
                 //tvTimer.setText(getDateFromMillis(millisUntilFinished));
@@ -219,7 +203,6 @@ public class ScraperActivity extends AppCompatActivity  {
             public void onFinish() {
                 setScraper(false);
                 mpbBtTimeout.setProgress(0);
-//                setProgressBarValues();
             }
         };
 
@@ -409,36 +392,36 @@ public class ScraperActivity extends AppCompatActivity  {
         requestQueue = Volley.newRequestQueue(getInstance());
         // Request a string response from the provided URL.
         JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(ScraperActivity.apiUrl + "state",
-                new Response.Listener<JSONArray>() {
-                    @Override
-                    public void onResponse(JSONArray response) {
-                        try {
-                            JSONObject state = response.getJSONObject(0);
-                            disableScraping = state.getBoolean("disablescraping");
-                            carAsleep = state.getString("state");
-                            ScraperActivity.getInstance().setScrapeState(disableScraping);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
+            new Response.Listener<JSONArray>() {
+                @Override
+                public void onResponse(JSONArray response) {
+                    try {
+                        JSONObject state = response.getJSONObject(0);
+                        disableScraping = state.getBoolean("disablescraping");
+                        carAsleep = state.getString("state");
+                        ScraperActivity.getInstance().setScrapeState(disableScraping);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        if (error.networkResponse.statusCode == 400) {
-                            Toast toast = Toast.makeText(instance,
-                                    "Wrong API Key: Code 400: " + error.toString(),
-                                    Toast.LENGTH_SHORT);
-                            toast.show();
-                        } else {
-                            Log.e("volley", "error" + error.toString());
-                            Toast toast = Toast.makeText(instance,
-                                    "Connection Problem: " + error.toString(),
-                                    Toast.LENGTH_SHORT);
-                            toast.show();
-                        }
+                }
+            },
+            new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    if (error.networkResponse.statusCode == 400) {
+                        Toast toast = Toast.makeText(instance,
+                                "Wrong API Key: Code 400: " + error.toString(),
+                                Toast.LENGTH_SHORT);
+                        toast.show();
+                    } else {
+                        Log.e("volley", "error" + error.toString());
+                        Toast toast = Toast.makeText(instance,
+                                "Connection Problem: " + error.toString(),
+                                Toast.LENGTH_SHORT);
+                        toast.show();
                     }
-                }) {
+                }
+            }) {
             @Override
             public Map<String,String> getHeaders() throws AuthFailureError {
                 HashMap<String, String> headers = new HashMap<String, String>();
@@ -515,32 +498,32 @@ public class ScraperActivity extends AppCompatActivity  {
     private BroadcastReceiver mAclConnectReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 
-            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
-                Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
-                //btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
-                if ((device.getName().equals(getBtName())) & mEnableBTProxmity.isChecked()) {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Proximity Detected...",
-                            Toast.LENGTH_SHORT);
-                    toast.show();
-                    setScraper(true);
-                }
+        if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
+            Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
+            //btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
+            if ((device.getName().equals(getBtName())) & mEnableBTProxmity.isChecked()) {
+                Toast toast = Toast.makeText(getApplicationContext(),
+                        "Proximity Detected...",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+                setScraper(true);
             }
-            if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
-                    || BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(intent.getAction())) {
-                Log.i("btDevice", "ACL Disconnect Device: "+device.getName() + " " + device.getAddress());
-                if ((device.getName().equals(getBtName())) & mDisableBTProxmity.isChecked()) {
-                    Toast toast = Toast.makeText(getApplicationContext(),
-                            "Proximity lost detected...",
-                            Toast.LENGTH_SHORT);
-                    toast.show();
-                    //setScraper(false);
-                    setProgressBarValues();
-                    startBtTimeout();
-                }
+        }
+        if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
+                || BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(intent.getAction())) {
+            Log.i("btDevice", "ACL Disconnect Device: "+device.getName() + " " + device.getAddress());
+            if ((device.getName().equals(getBtName())) & mDisableBTProxmity.isChecked()) {
+                Toast toast = Toast.makeText(getApplicationContext(),
+                        "Proximity lost detected...",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+                //setScraper(false);
+                setProgressBarValues();
+                startBtTimeout();
             }
+        }
         }
     };
 }
