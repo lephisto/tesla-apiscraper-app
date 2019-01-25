@@ -68,7 +68,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:hint="Save Settings..."
-                android:onClick="saveSettings"
                 android:text="Save Settings"
                 android:textStyle="bold" />
 
