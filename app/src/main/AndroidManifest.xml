@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="to.mephis.apiscrapercontrol">
-
     <!-- Need Internet Connection -->
-    <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- Need to be notified when Blueooth devices connect -->
-    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.INTERNET" />  <!-- Need to go to the Internets -->
+    <uses-permission android:name="android.permission.BLUETOOTH" /> <!-- Need to be notified when Blueooth devices connect -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
@@ -16,8 +13,11 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Base.Theme.AppCompat.Light.DarkActionBar"
         android:usesCleartextTraffic="true">
+        <activity android:name=".Settings">
+        </activity>
+
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />

@@ -66,7 +66,7 @@ import static java.lang.Thread.sleep;
 /**
  * Mainscreen for setting apiScraper Properties
  */
-public class ScraperActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
+public class ScraperActivity extends AppCompatActivity  {
 
 
     /**
@@ -150,13 +150,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             }
         });
 
-        mbtnSaveSettings.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveSettings();
-            }
-        });
-
         mEnablePolling.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             if (isChecked) {
@@ -231,9 +224,8 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         };
 
         mLoginFormView = findViewById(R.id.login_form);
-        mBtName.setText(getBtName().toString());
-        mApiUrl.setText(getapiUrl().toString());
-        mApiSecret.setText(getapiKey().toString());
+
+        loadSettings();
 
         mEnablePolling.setChecked(getPolling());
         if (mEnablePolling.isChecked()) {
@@ -268,33 +260,61 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         return true;
     }
 
+    public void loadSettings() {
+        apiUrl = getapiUrl();
+        apiKey = getapiKey();
+    }
+
+    public void launchSettings(){
+        Intent intent = new Intent(this, Settings.class);
+        intent.putExtra("pref_btMac",pref_btMac);
+        intent.putExtra("pref_apiUrl",pref_apiUrl);
+        intent.putExtra("pref_apiKey",pref_apiKey);
+        intent.putExtra("btname",getBtName());
+        intent.putExtra("apiurl",getapiUrl());
+        intent.putExtra("apikey",getapiKey());
+        startActivityForResult(intent,1);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 1){
+            if(resultCode == RESULT_OK){
+                String result=data.getStringExtra("result");
+                Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+                loadSettings();
+            }
+            /**if (resultCode == RESULT_CANCELED) {
+                String result=data.getStringExtra("result");
+                Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+            }*/
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(final MenuItem item) {
-
         switch (item.getItemId()) {
             case R.id.menu_refresh:
                 Log.i("Toolbar", "refresh");
                 doPoll();
+                return true;
+            case R.id.settings:
+                Log.i("Toolbar","settings");
+                launchSettings();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    // Setup a recurring alarm every half hour
     public void scheduleAlarm() {
-        // Construct an intent that will execute the AlarmReceiver
         Intent intent = new Intent(getApplicationContext(), alarmReceiver.class);
-        // Create a PendingIntent to be triggered when the alarm goes off
         final PendingIntent pIntent = PendingIntent.getBroadcast(this, alarmReceiver.REQUEST_CODE,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
         long firstMillis = System.currentTimeMillis(); // alarm is set right away
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-        // First parameter is the type: ELAPSED_REALTIME, ELAPSED_REALTIME_WAKEUP, RTC_WAKEUP
-        // Interval can be INTERVAL_FIFTEEN_MINUTES, INTERVAL_HALF_HOUR, INTERVAL_HOUR, INTERVAL_DAY
-//        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis,
-//                (1*1000), pIntent);
-
         alarm.setRepeating(AlarmManager.RTC_WAKEUP,firstMillis,(15*1000),pIntent);
     }
 
@@ -325,12 +345,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         String str = sp.getString("myStore","00:00:00:00:00:00");
         return str;
     }
-    public void writeBtMac(String pref)
-    {
-        SharedPreferences.Editor editor = getSharedPreferences(pref_btMac,0).edit();
-        editor.putString("myStore", pref);
-        editor.commit();
-    }
 
     public String getapiUrl()
     {
@@ -339,12 +353,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         apiUrl = str;
         return str;
     }
-    public void writeApiUrl(String pref)
-    {
-        SharedPreferences.Editor editor = getSharedPreferences(pref_apiUrl,0).edit();
-        editor.putString("myStore", pref);
-        editor.commit();
-    }
 
     public String getapiKey()
     {
@@ -352,12 +360,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         String str = sp.getString("myStore","YourApiKey");
         apiKey = str;
         return str;
-    }
-    public void writeApiKey(String pref)
-    {
-        SharedPreferences.Editor editor = getSharedPreferences(pref_apiKey,0).edit();
-        editor.putString("myStore", pref);
-        editor.commit();
     }
 
     public boolean getPolling()
@@ -423,11 +425,18 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.e("volley", "error" + error.toString());
-                        Toast toast = Toast.makeText(instance,
-                                "Connection Problem: " + error.toString(),
-                                Toast.LENGTH_SHORT);
-                        toast.show();
+                        if (error.networkResponse.statusCode == 400) {
+                            Toast toast = Toast.makeText(instance,
+                                    "Wrong API Key: Code 400: " + error.toString(),
+                                    Toast.LENGTH_SHORT);
+                            toast.show();
+                        } else {
+                            Log.e("volley", "error" + error.toString());
+                            Toast toast = Toast.makeText(instance,
+                                    "Connection Problem: " + error.toString(),
+                                    Toast.LENGTH_SHORT);
+                            toast.show();
+                        }
                     }
                 }) {
             @Override
@@ -442,7 +451,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
     }
 
     public static void setScraper(boolean doScrape) {
-
         //Perform http post
         RequestQueue requestQueue;
         requestQueue = Volley.newRequestQueue(getInstance());
@@ -481,11 +489,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         doPoll();
     }
 
-    /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
-     */
     private void switchScraper() {
         // Reset errors.
         // Store values at the time of the login attempt.
@@ -500,9 +503,6 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
         String btmac = mBtName.getText().toString();
         String apiurl = mApiUrl.getText().toString();
         String apisecret = mApiSecret.getText().toString();
-        writeBtMac(btmac);
-        writeApiUrl(apiurl);
-        writeApiKey(apisecret);
         apiUrl = apiurl;
         apiKey = apisecret;
         boolean cancel = false;
@@ -520,7 +520,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
                 Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
                 //btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
-                if ((device.getName().equals(mBtName.getText().toString())) & mEnableBTProxmity.isChecked()) {
+                if ((device.getName().equals(getBtName())) & mEnableBTProxmity.isChecked()) {
                     Toast toast = Toast.makeText(getApplicationContext(),
                             "Proximity Detected...",
                             Toast.LENGTH_SHORT);
@@ -531,7 +531,7 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
                     || BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(intent.getAction())) {
                 Log.i("btDevice", "ACL Disconnect Device: "+device.getName() + " " + device.getAddress());
-                if ((device.getName().equals(mBtName.getText().toString())) & mDisableBTProxmity.isChecked()) {
+                if ((device.getName().equals(getBtName())) & mDisableBTProxmity.isChecked()) {
                     Toast toast = Toast.makeText(getApplicationContext(),
                             "Proximity lost detected...",
                             Toast.LENGTH_SHORT);
@@ -543,149 +543,5 @@ public class ScraperActivity extends AppCompatActivity implements LoaderCallback
             }
         }
     };
-
-//    public Timer(is) {
-        //
-//    }
-
-
-    /**
-     * Shows the progress UI and hides the login form.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
-
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-            mLoginFormView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                }
-            });
-
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mProgressView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        return new CursorLoader(this,
-                // Retrieve data rows for the device user's 'profile' contact.
-                Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI,
-                        ContactsContract.Contacts.Data.CONTENT_DIRECTORY), ProfileQuery.PROJECTION,
-
-                // Select only email addresses.
-                ContactsContract.Contacts.Data.MIMETYPE +
-                        " = ?", new String[]{ContactsContract.CommonDataKinds.Email
-                .CONTENT_ITEM_TYPE},
-
-                // Show primary email addresses first. Note that there won't be
-                // a primary email address if the user hasn't specified one.
-                ContactsContract.Contacts.Data.IS_PRIMARY + " DESC");
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        List<String> emails = new ArrayList<>();
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            emails.add(cursor.getString(ProfileQuery.ADDRESS));
-            cursor.moveToNext();
-        }
-
-        //addEmailsToAutoComplete(emails);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
-    }
-
-    /*
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
-        //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<>(ScraperActivity.this,
-                        android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
-
-        mEmailView.setAdapter(adapter);
-    }*/
-
-
-    private interface ProfileQuery {
-        String[] PROJECTION = {
-                ContactsContract.CommonDataKinds.Email.ADDRESS,
-                ContactsContract.CommonDataKinds.Email.IS_PRIMARY,
-        };
-
-        int ADDRESS = 0;
-        int IS_PRIMARY = 1;
-    }
-
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-        private final String mPassword;
-
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
-            try {
-                // Simulate network access.
-                sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-
-            // TODO: register the new account here.
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            showProgress(false);
-
-            /*if (success) {
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }*/
-        }
-
-        @Override
-        protected void onCancelled() {
-            showProgress(false);
-        }
-    }
 }
 
