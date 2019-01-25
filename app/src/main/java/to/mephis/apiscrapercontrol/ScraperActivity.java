@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
@@ -22,10 +23,10 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Switch;
-import android.widget.TextView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 
 import android.content.SharedPreferences;
 import android.widget.Toast;
@@ -61,6 +62,8 @@ public class ScraperActivity extends AppCompatActivity  {
 
     private static boolean polling_enabled = false;
 
+
+    // Set Keys for Prefstore
     public static final String pref_btMac = "btMac";
     public static final String pref_apiUrl = "apiUrl";
     public static final String pref_apiKey = "apiKey";
@@ -68,24 +71,21 @@ public class ScraperActivity extends AppCompatActivity  {
     public static final String pref_StartOnProximity = "startOnProximity";
     public static final String pref_StopOnProximityLost = "stopOnProximityLost";
 
+    //Globals
     public static String apiUrl = "";
     public static String apiKey = "";
     public static boolean disableScraping = false;
     public static String carAsleep = "unknown";
 
     // UI references.
-    private EditText mBtName;
-    private EditText mApiUrl;
-    private EditText mApiSecret;
-    private TextView mDebugBox;
     private Button mBtnScraperState;
-    private Button mbtnSaveSettings;
     private View mProgressView;
     private View mLoginFormView;
     private Switch mEnablePolling;
     private Switch mEnableBTProxmity;
     private Switch mDisableBTProxmity;
     private ProgressBar mpbBtTimeout;
+    private static TableLayout mtblData;
 
     CountDownTimer countDownTimer;
     int time = 4 * 60 * 1000; // 4 minutes
@@ -114,18 +114,14 @@ public class ScraperActivity extends AppCompatActivity  {
 
         super.onCreate(savedInstanceState);
         instance = this;
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_main);
 
-
-        mBtName = (EditText) findViewById(R.id.btMac);
-        mApiUrl = (EditText) findViewById(R.id.apiurl);
-        mApiSecret = (EditText) findViewById(R.id.apikey);
         mBtnScraperState = (Button) findViewById(R.id.btn_scraperStatus);
-        mbtnSaveSettings = (Button) findViewById(R.id.btn_saveSettings);
         mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
         mEnableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximity);
         mDisableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximityLost);
         mpbBtTimeout = (ProgressBar) findViewById(R.id.prgProximityTimeout);
+        mtblData = (TableLayout) findViewById(R.id.tblData);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
@@ -385,6 +381,9 @@ public class ScraperActivity extends AppCompatActivity  {
     }
 
 
+    private static void populateDataTable() {
+        //todo table with metadata
+    }
 
     public static void doPoll() {
         RequestQueue requestQueue;
@@ -400,6 +399,7 @@ public class ScraperActivity extends AppCompatActivity  {
                         disableScraping = state.getBoolean("disablescraping");
                         carAsleep = state.getString("state");
                         ScraperActivity.getInstance().setScrapeState(disableScraping);
+                        populateDataTable();
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -477,21 +477,6 @@ public class ScraperActivity extends AppCompatActivity  {
         // Store values at the time of the login attempt.
         setScraper(disableScraping);
     }
-
-    private void saveSettings() {
-        //Save Settings
-        mBtName.setError(null);
-        mApiUrl.setError(null);
-        mApiSecret.setError(null);
-        String btmac = mBtName.getText().toString();
-        String apiurl = mApiUrl.getText().toString();
-        String apisecret = mApiSecret.getText().toString();
-        apiUrl = apiurl;
-        apiKey = apisecret;
-        boolean cancel = false;
-        View focusView = null;
-    }
-
 
 
 
