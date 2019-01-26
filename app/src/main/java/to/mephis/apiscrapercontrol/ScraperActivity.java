@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -83,15 +84,13 @@ public class ScraperActivity extends AppCompatActivity  {
     public static final String pref_StartOnProximity = "startOnProximity";
     public static final String pref_StopOnProximityLost = "stopOnProximityLost";
 
-    //table
-    private static final String[] TABLE_HEADERS = { "Item", "Value" };
-
     //Globals
     public static String apiUrl = "";
     public static String apiKey = "";
     public static boolean disableScraping = false;
     public static String carAsleep = "unknown";
     public static Long lastPoll;
+    public static Resources mResources;
     private static TableLayout mTblData;
 
     // UI references.
@@ -117,11 +116,12 @@ public class ScraperActivity extends AppCompatActivity  {
         return instance;
     }
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_FOLLOW_SYSTEM);
+
+        mResources = getResources();
 
         super.onCreate(savedInstanceState);
         instance = this;
@@ -181,7 +181,7 @@ public class ScraperActivity extends AppCompatActivity  {
                 toast.show();
             } else {
                 Toast toast = Toast.makeText(getApplicationContext(),
-                        "Activate Proxmity disabled",
+                        "Activate on Proximity disabled",
                         Toast.LENGTH_SHORT);
                 toast.show();
             }
@@ -238,6 +238,7 @@ public class ScraperActivity extends AppCompatActivity  {
     }
 
     protected void onDestroy () {
+        super.onDestroy();
         cancelAlarm();
     }
 
@@ -506,7 +507,8 @@ public class ScraperActivity extends AppCompatActivity  {
         col2.setGravity(Gravity.RIGHT);
         row1.addView(col1);
         row1.addView(col2);
-        row1.setBackgroundColor(R.color.colorBackground);
+
+        row1.setBackgroundColor(mResources.getColor(R.color.colorBackground));
         mTblData.addView(row1);
         TableRow row2 = new TableRow(getInstance());
         TextView ts1 = new TextView(getInstance());
@@ -518,7 +520,7 @@ public class ScraperActivity extends AppCompatActivity  {
         ts2.setGravity(Gravity.RIGHT);
         row2.addView(ts1);
         row2.addView(ts2);
-        row2.setBackgroundColor(R.color.colorBackground);
+        row2.setBackgroundColor(mResources.getColor(R.color.colorBackground));
         mTblData.addView(row2);
 
     }
