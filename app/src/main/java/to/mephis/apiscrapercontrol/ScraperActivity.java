@@ -8,7 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.CountDownTimer;
-import android.os.SystemClock;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 
 
@@ -21,17 +21,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.GridView;
 import android.widget.ProgressBar;
 import android.widget.Switch;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 
 import android.content.SharedPreferences;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -52,9 +47,7 @@ import java.util.Map;
 
 import static android.graphics.Color.GRAY;
 import static android.graphics.Color.GREEN;
-import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_AUTO;
 import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
-import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_YES;
 
 /**
  * Mainscreen for setting apiScraper Properties
@@ -95,6 +88,7 @@ public class ScraperActivity extends AppCompatActivity  {
     private Switch mEnableBTProxmity;
     private Switch mDisableBTProxmity;
     private ProgressBar mpbBtTimeout;
+    private Integer jobId;
 
     CountDownTimer countDownTimer;
     int time = 4 * 60 * 1000; // 4 minutes
@@ -119,7 +113,6 @@ public class ScraperActivity extends AppCompatActivity  {
         super.onCreate(savedInstanceState);
         instance = this;
         setContentView(R.layout.activity_main);
-
 
         //Look at BT
         IntentFilter filter = new IntentFilter();
@@ -228,6 +221,25 @@ public class ScraperActivity extends AppCompatActivity  {
         }
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
+
+        //runJobImmediately();
+        //schedulePeriodicJob();
+
+    }
+
+    protected void onDestroy () {
+        cancelAlarm();
+    }
+
+    protected void onPause() {
+        super.onPause();
+        cancelAlarm();
+    }
+
+    protected void onResume() {
+        super.onResume();
+        doPoll();
+        scheduleAlarm();
     }
 
     private void setProgressBarValues() {
@@ -301,16 +313,20 @@ public class ScraperActivity extends AppCompatActivity  {
         }
     }
 
+
     public void scheduleAlarm() {
+        Log.i("Alarm", "schedule");
         Intent intent = new Intent(getApplicationContext(), alarmReceiver.class);
         final PendingIntent pIntent = PendingIntent.getBroadcast(this, alarmReceiver.REQUEST_CODE,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
         long firstMillis = System.currentTimeMillis(); // alarm is set right away
         AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         alarm.setRepeating(AlarmManager.RTC_WAKEUP,firstMillis,(15*1000),pIntent);
+//        getInstance().startService(pIntent);
     }
 
     public void cancelAlarm() {
+        Log.i("Alarm", "cancel");
         Intent intent = new Intent(getApplicationContext(), alarmReceiver.class);
         final PendingIntent pIntent = PendingIntent.getBroadcast(this, alarmReceiver.REQUEST_CODE,
                 intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -479,19 +495,21 @@ public class ScraperActivity extends AppCompatActivity  {
                 return headers;
             }
         };
-        //jsonObjectRequest.setTag(REQ_TAG);
         requestQueue.add(jsonObjectRequest);
-        SystemClock.sleep(1000);
+
+        //Give API 2 Seconds to accomodate..
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                doPoll();
+            }
+        }, 2000);
         doPoll();
     }
 
     private void switchScraper() {
-        // Reset errors.
-        // Store values at the time of the login attempt.
         setScraper(!disableScraping);
     }
-
-
 
     private BroadcastReceiver mAclConnectReceiver = new BroadcastReceiver() {
         @Override
@@ -500,7 +518,6 @@ public class ScraperActivity extends AppCompatActivity  {
 
         if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
             Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
-            //btConnectNotification.notify(getApplicationContext(),"BT Connect",1);
             if ((device.getName().equals(getBtName())) & mEnableBTProxmity.isChecked()) {
                 Toast toast = Toast.makeText(getApplicationContext(),
                         "Proximity Detected...",

@@ -6,7 +6,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center_horizontal"
     android:orientation="vertical"
     android:paddingLeft="@dimen/activity_horizontal_margin"
@@ -28,23 +27,12 @@
             android:orientation="vertical">
 
 
-            <Button
-                android:id="@+id/btn_scraperStatus"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:hint="Tap to Turn Scraping on/off"
-                android:text="Retrieving Scraper State..."
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-
             <Switch
                 android:id="@+id/swEnablePolling"
                 android:layout_width="match_parent"
                 android:layout_height="41dp"
-                android:text="Enable Polling Scrapecontroller" />
+                android:text="Enable Polling Scrapecontroller"
+                android:visibility="gone" />
 
             <Switch
                 android:id="@+id/swEnableBTProximity"
@@ -63,6 +51,17 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"/>
+
+            <Button
+                android:id="@+id/btn_scraperStatus"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="Tap to Turn Scraping on/off"
+                android:text="Retrieving Scraper State..."
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
         </LinearLayout>
     </ScrollView>
