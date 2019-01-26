@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
@@ -234,12 +235,7 @@ public class ScraperActivity extends AppCompatActivity  {
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
 
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, "1")
-                .setContentTitle("BT Proximity Detected")
-                .setContentText("Much longer text that cannot fit one line...")
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText("Much longer text that cannot fit one line..."))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
     }
 
     protected void onDestroy () {
@@ -255,6 +251,10 @@ public class ScraperActivity extends AppCompatActivity  {
         super.onResume();
         doPoll();
         scheduleAlarm();
+    }
+
+    private void notifyJo() {
+
     }
 
     private void setProgressBarValues() {
@@ -569,7 +569,7 @@ public class ScraperActivity extends AppCompatActivity  {
             public void run() {
                 doPoll();
             }
-        }, 2000);
+        }, 100);
         doPoll();
     }
 
