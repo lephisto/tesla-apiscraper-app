@@ -68,7 +68,6 @@ import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
  */
 public class ScraperActivity extends AppCompatActivity  {
 
-
     /**
      * Shared pref store..
      */
@@ -92,12 +91,11 @@ public class ScraperActivity extends AppCompatActivity  {
     public static String apiKey = "";
     public static boolean disableScraping = false;
     public static String carAsleep = "unknown";
-    public static String vin = "unknown";
+    public static Long lastPoll;
     private static TableLayout mTblData;
 
     // UI references.
     private Button mBtnScraperState;
-    private View mProgressView;
     private View mLoginFormView;
     private Switch mEnablePolling;
     private Switch mEnableBTProxmity;
@@ -500,15 +498,28 @@ public class ScraperActivity extends AppCompatActivity  {
                 ignored.printStackTrace();
             }
         }
-        TableRow row = new TableRow(getInstance());
+        TableRow row1 = new TableRow(getInstance());
         TextView col1 = new TextView(getInstance());
         TextView col2 = new TextView(getInstance());
         col1.setText("apiurl");
         col2.setText(apiUrl);
         col2.setGravity(Gravity.RIGHT);
-        row.addView(col1);
-        row.addView(col2);
-        mTblData.addView(row);
+        row1.addView(col1);
+        row1.addView(col2);
+        row1.setBackgroundColor(R.color.colorBackground);
+        mTblData.addView(row1);
+        TableRow row2 = new TableRow(getInstance());
+        TextView ts1 = new TextView(getInstance());
+        TextView ts2 = new TextView(getInstance());
+        ts1.setText("lastpoll");
+        Date date = new Date(lastPoll);
+        String formattedDate = sdf.format(date);
+        ts2.setText(formattedDate);
+        ts2.setGravity(Gravity.RIGHT);
+        row2.addView(ts1);
+        row2.addView(ts2);
+        row2.setBackgroundColor(R.color.colorBackground);
+        mTblData.addView(row2);
 
     }
 
@@ -567,6 +578,7 @@ public class ScraperActivity extends AppCompatActivity  {
                 }
             };
             requestQueue.add(jsonArrayRequest);
+            lastPoll = System.currentTimeMillis();
         } finally {
             //
         }
