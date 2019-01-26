@@ -7,13 +7,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Color;
 import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 
 
 import android.os.Bundle;
+import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -21,14 +21,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.GridView;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 
 import android.content.SharedPreferences;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -49,6 +52,9 @@ import java.util.Map;
 
 import static android.graphics.Color.GRAY;
 import static android.graphics.Color.GREEN;
+import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_AUTO;
+import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+import static android.support.v7.app.AppCompatDelegate.MODE_NIGHT_YES;
 
 /**
  * Mainscreen for setting apiScraper Properties
@@ -71,11 +77,15 @@ public class ScraperActivity extends AppCompatActivity  {
     public static final String pref_StartOnProximity = "startOnProximity";
     public static final String pref_StopOnProximityLost = "stopOnProximityLost";
 
+    //table
+    private static final String[] TABLE_HEADERS = { "Item", "Value" };
+
     //Globals
     public static String apiUrl = "";
     public static String apiKey = "";
     public static boolean disableScraping = false;
     public static String carAsleep = "unknown";
+    public static String vin = "unknown";
 
     // UI references.
     private Button mBtnScraperState;
@@ -85,7 +95,6 @@ public class ScraperActivity extends AppCompatActivity  {
     private Switch mEnableBTProxmity;
     private Switch mDisableBTProxmity;
     private ProgressBar mpbBtTimeout;
-    private static TableLayout mtblData;
 
     CountDownTimer countDownTimer;
     int time = 4 * 60 * 1000; // 4 minutes
@@ -105,6 +114,13 @@ public class ScraperActivity extends AppCompatActivity  {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        AppCompatDelegate.setDefaultNightMode(MODE_NIGHT_FOLLOW_SYSTEM);
+
+        super.onCreate(savedInstanceState);
+        instance = this;
+        setContentView(R.layout.activity_main);
+
+
         //Look at BT
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
@@ -112,18 +128,15 @@ public class ScraperActivity extends AppCompatActivity  {
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         registerReceiver(mAclConnectReceiver, filter);
 
-        super.onCreate(savedInstanceState);
-        instance = this;
-        setContentView(R.layout.activity_main);
 
         mBtnScraperState = (Button) findViewById(R.id.btn_scraperStatus);
         mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
         mEnableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximity);
         mDisableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximityLost);
         mpbBtTimeout = (ProgressBar) findViewById(R.id.prgProximityTimeout);
-        mtblData = (TableLayout) findViewById(R.id.tblData);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
 
         mBtnScraperState.setOnClickListener(new OnClickListener() {
             @Override
@@ -202,8 +215,9 @@ public class ScraperActivity extends AppCompatActivity  {
             }
         };
 
-        mLoginFormView = findViewById(R.id.login_form);
+        mLoginFormView = findViewById(R.id.main_scrollview);
 
+        //Load perfs
         loadSettings();
 
         mEnablePolling.setChecked(getPolling());
@@ -212,7 +226,6 @@ public class ScraperActivity extends AppCompatActivity  {
         } else {
             mBtnScraperState.setText("Polling disabled..");
         }
-
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
     }
@@ -380,9 +393,9 @@ public class ScraperActivity extends AppCompatActivity  {
         editor.commit();
     }
 
-
     private static void populateDataTable() {
         //todo table with metadata
+
     }
 
     public static void doPoll() {
@@ -440,7 +453,7 @@ public class ScraperActivity extends AppCompatActivity  {
         JSONObject json = new JSONObject();
         try {
             json.put("command","scrape");
-            json.put("value",!disableScraping);
+            json.put("value",doScrape);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -475,7 +488,7 @@ public class ScraperActivity extends AppCompatActivity  {
     private void switchScraper() {
         // Reset errors.
         // Store values at the time of the login attempt.
-        setScraper(disableScraping);
+        setScraper(!disableScraping);
     }
 
 
@@ -504,7 +517,7 @@ public class ScraperActivity extends AppCompatActivity  {
                         "Proximity lost detected...",
                         Toast.LENGTH_SHORT);
                 toast.show();
-                //setScraper(false);
+                setScraper(false);
                 setProgressBarValues();
                 startBtTimeout();
             }
