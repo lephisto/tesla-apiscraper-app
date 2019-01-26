@@ -33,4 +33,6 @@
 
     <string name="table_layout_header">Item</string>
     <string name="table_layout_value">Value</string>
+    <string name="channel_name">SmartScrape Remote</string>
+    <string name="channel_description">SmartScrape Remote Notification</string>
 </resources>

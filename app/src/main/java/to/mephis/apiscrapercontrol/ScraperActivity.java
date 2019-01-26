@@ -1,6 +1,9 @@
 package to.mephis.apiscrapercontrol;
 
 import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -100,7 +103,7 @@ public class ScraperActivity extends AppCompatActivity  {
     private Switch mEnableBTProxmity;
     private Switch mDisableBTProxmity;
     private ProgressBar mpbBtTimeout;
-    //private TableLayout mTblData;
+    private NotificationManager mNotificationManager;
 
     CountDownTimer countDownTimer;
     int time = 4 * 60 * 1000; // 4 minutes
@@ -214,7 +217,6 @@ public class ScraperActivity extends AppCompatActivity  {
                 int progress = (int) millisUntilFinished / interval;
                 mpbBtTimeout.setProgress(mpbBtTimeout.getMax() - progress);
             }
-
             public void onFinish() {
                 setScraper(false);
                 mpbBtTimeout.setProgress(0);
@@ -235,7 +237,6 @@ public class ScraperActivity extends AppCompatActivity  {
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
 
-
     }
 
     protected void onDestroy () {
@@ -249,12 +250,50 @@ public class ScraperActivity extends AppCompatActivity  {
 
     protected void onResume() {
         super.onResume();
-        doPoll();
+        if (mpbBtTimeout.getProgress()>0) {
+            doPoll();
+        }
         scheduleAlarm();
     }
 
-    private void notifyJo() {
 
+    private void notifySmartscrape(String title, String Text, String Summary, Integer timeoutSecs) {
+
+        Context mContext = this;
+
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this.getApplicationContext(), "notify_001");
+
+        Intent ii = new Intent(mContext.getApplicationContext(), ScraperActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 0, ii, 0);
+
+        NotificationCompat.BigTextStyle bigText = new NotificationCompat.BigTextStyle();
+        bigText.bigText(Text);
+        bigText.setBigContentTitle(title);
+        bigText.setSummaryText(Summary);
+
+        mBuilder.setContentIntent(pendingIntent);
+        mBuilder.setSmallIcon(R.mipmap.ic_launcher_round);
+        mBuilder.setContentTitle(title);
+        mBuilder.setContentText(Text);
+        mBuilder.setPriority(Notification.PRIORITY_MAX);
+        mBuilder.setTimeoutAfter(timeoutSecs * 1000);
+        mBuilder.setStyle(bigText);
+
+        mNotificationManager =
+                (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            String channelId = "smartscrape";
+            NotificationChannel channel = new NotificationChannel(channelId,
+                    "Smartscrape Remote Control",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            mNotificationManager.createNotificationChannel(channel);
+            mBuilder.setChannelId(channelId);
+        }
+
+        mNotificationManager.notify(0, mBuilder.build());
     }
 
     private void setProgressBarValues() {
@@ -269,6 +308,7 @@ public class ScraperActivity extends AppCompatActivity  {
 
     public void stopBtTimeout() {
         countDownTimer.cancel();
+        mpbBtTimeout.setProgress(0);
     }
 
 
@@ -322,6 +362,10 @@ public class ScraperActivity extends AppCompatActivity  {
             case R.id.settings:
                 Log.i("Toolbar","settings");
                 launchSettings();
+                return true;
+            case R.id.about:
+                Log.i("Toolbar","about");
+
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -563,7 +607,7 @@ public class ScraperActivity extends AppCompatActivity  {
         };
         requestQueue.add(jsonObjectRequest);
 
-        //Give API 2 Seconds to accomodate..
+        //Give API 100ms to accomodate..
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -589,6 +633,10 @@ public class ScraperActivity extends AppCompatActivity  {
                         "Proximity Detected...",
                         Toast.LENGTH_SHORT);
                 toast.show();
+                notifySmartscrape("Proximity detected","Proximity to your car detected. Starting Scrape."
+                        ,"Bluetooth Proximit to your car ist detected. You configured to turn on scraping when this happens"
+                        ,10);
+                stopBtTimeout();
                 setScraper(true);
             }
         }
@@ -600,6 +648,9 @@ public class ScraperActivity extends AppCompatActivity  {
                         "Proximity lost detected...",
                         Toast.LENGTH_SHORT);
                 toast.show();
+                notifySmartscrape("Proximity lost","Proximity to your Car was lost. Stopping scrape."
+                        ,"Bluetooth Proximit to your car was lost. You configured to turn off scraping when this happens"
+                        ,0);
                 setScraper(false);
                 setProgressBarValues();
                 startBtTimeout();

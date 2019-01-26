@@ -31,8 +31,7 @@
                 android:id="@+id/swEnablePolling"
                 android:layout_width="match_parent"
                 android:layout_height="41dp"
-                android:text="Enable Polling Scrapecontroller"
-                android:visibility="gone" />
+                android:text="Enable Polling Scrapecontroller" />
 
             <Switch
                 android:id="@+id/swEnableBTProximity"
