@@ -38,7 +38,7 @@
                 android:id="@+id/swEnableBTProximity"
                 android:layout_width="match_parent"
                 android:layout_height="41dp"
-                android:text="BT Proximity enables Scraper" />
+                android:text="BT Proximity catch enables Scraper" />
 
             <Switch
                 android:id="@+id/swEnableBTProximityLost"
