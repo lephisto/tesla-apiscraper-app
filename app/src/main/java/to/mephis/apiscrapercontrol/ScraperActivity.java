@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,6 +29,9 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 
 import android.content.SharedPreferences;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
@@ -43,7 +47,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import static android.graphics.Color.GRAY;
@@ -80,6 +89,7 @@ public class ScraperActivity extends AppCompatActivity  {
     public static boolean disableScraping = false;
     public static String carAsleep = "unknown";
     public static String vin = "unknown";
+    private static TableLayout mTblData;
 
     // UI references.
     private Button mBtnScraperState;
@@ -89,7 +99,7 @@ public class ScraperActivity extends AppCompatActivity  {
     private Switch mEnableBTProxmity;
     private Switch mDisableBTProxmity;
     private ProgressBar mpbBtTimeout;
-    private Integer jobId;
+    //private TableLayout mTblData;
 
     CountDownTimer countDownTimer;
     int time = 4 * 60 * 1000; // 4 minutes
@@ -128,6 +138,7 @@ public class ScraperActivity extends AppCompatActivity  {
         mEnableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximity);
         mDisableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximityLost);
         mpbBtTimeout = (ProgressBar) findViewById(R.id.prgProximityTimeout);
+        mTblData = (TableLayout) findViewById(R.id.tblData);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
@@ -413,8 +424,47 @@ public class ScraperActivity extends AppCompatActivity  {
         editor.commit();
     }
 
-    private static void populateDataTable() {
-        //todo table with metadata
+    private static void populateDataTable(JSONObject jsonData) {
+        mTblData.removeAllViews();
+        SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        List<String> hideItems = Arrays.asList("apikey");
+        List<String> asDate = Arrays.asList("disabledsince");
+        Iterator<?> iterator = jsonData.keys();
+        while (iterator.hasNext()) {
+            TableRow row = new TableRow(getInstance());
+            Object key = iterator.next();
+            try {
+                if (!hideItems.contains(key)) {
+                    Object value = jsonData.get(key.toString());
+                    TextView col1 = new TextView(getInstance());
+                    TextView col2 = new TextView(getInstance());
+                    col1.setText(key.toString());
+                    if (asDate.contains(key)) {
+                        long unixSeconds = Long.parseLong(value.toString());
+                        Date date = new Date(unixSeconds*1000L);
+                        String formattedDate = sdf.format(date);
+                        col2.setText(formattedDate);
+                    } else {
+                        col2.setText(value.toString());
+                    }
+                    col2.setGravity(Gravity.RIGHT);
+                    row.addView(col1);
+                    row.addView(col2);
+                    mTblData.addView(row);
+                }
+            } catch (JSONException ignored) {
+                ignored.printStackTrace();
+            }
+        }
+        TableRow row = new TableRow(getInstance());
+        TextView col1 = new TextView(getInstance());
+        TextView col2 = new TextView(getInstance());
+        col1.setText("apiurl");
+        col2.setText(apiUrl);
+        col2.setGravity(Gravity.RIGHT);
+        row.addView(col1);
+        row.addView(col2);
+        mTblData.addView(row);
 
     }
 
@@ -433,7 +483,7 @@ public class ScraperActivity extends AppCompatActivity  {
                                 disableScraping = state.getBoolean("disablescraping");
                                 carAsleep = state.getString("state");
                                 ScraperActivity.getInstance().setScrapeState(disableScraping);
-                                populateDataTable();
+                                populateDataTable(state);
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }

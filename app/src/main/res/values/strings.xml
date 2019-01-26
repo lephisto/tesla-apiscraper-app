@@ -30,4 +30,7 @@
     <string name="action_share">Share</string>
     <string name="action_reply">Reply</string>
     <string name="title_activity_settings">SettingsActivity</string>
+
+    <string name="table_layout_header">Item</string>
+    <string name="table_layout_value">Value</string>
 </resources>
