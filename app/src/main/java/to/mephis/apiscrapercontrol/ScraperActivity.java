@@ -12,7 +12,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.os.Build;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -103,12 +102,10 @@ public class ScraperActivity extends AppCompatActivity  {
     private Switch mDisableBTProxmity;
     private ProgressBar mpbBtTimeout;
     private NotificationManager mNotificationManager;
-
-    CountDownTimer countDownTimer;
-    int interval = 1000; // 1 second
-
-    //toolbar
     private Toolbar toolbar;
+    private final static String TAG = "ScraperActivity";
+
+    int interval = 1000; // 1 second
 
 
     // We do this to publish it to our other Classes
@@ -135,7 +132,6 @@ public class ScraperActivity extends AppCompatActivity  {
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         registerReceiver(mAclConnectReceiver, filter);
 
-
         mBtnScraperState = (Button) findViewById(R.id.btn_scraperStatus);
         mEnablePolling = (Switch) findViewById(R.id.swEnablePolling);
         mEnableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximity);
@@ -144,7 +140,6 @@ public class ScraperActivity extends AppCompatActivity  {
         mTblData = (TableLayout) findViewById(R.id.tblData);
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
-
 
         mBtnScraperState.setOnClickListener(new OnClickListener() {
             @Override
@@ -233,7 +228,6 @@ public class ScraperActivity extends AppCompatActivity  {
         }
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
-
     }
 
     protected void onDestroy () {
@@ -243,30 +237,19 @@ public class ScraperActivity extends AppCompatActivity  {
 
     protected void onPause() {
         super.onPause();
+        unregisterReceiver(br);
+        Log.i(TAG, "Unregistered broacast receiver");
         cancelAlarm();
     }
 
     protected void onResume() {
         super.onResume();
+        registerReceiver(br, new IntentFilter(BroadcastService.COUNTDOWN_BR));
+        Log.i(TAG, "Registered broacast receiver");
         if (mpbBtTimeout.getProgress()>0) {
             doPoll();
         }
         scheduleAlarm();
-    }
-
-    private void initCountdown(Integer seconds) {
-        countDownTimer = new CountDownTimer(seconds * interval, interval) {
-            public void onTick(long millisUntilFinished) {
-                //tvTimer.setText(getDateFromMillis(millisUntilFinished));
-                int progress = (int) millisUntilFinished / interval;
-                mpbBtTimeout.setProgress(mpbBtTimeout.getMax() - progress);
-            }
-            public void onFinish() {
-                setScraper(true);
-                mpbBtTimeout.setProgress(0);
-            }
-        };
-
     }
 
     private void notifySmartscrape(String title, String Text, String Summary, Integer timeoutSecs) {
@@ -315,12 +298,39 @@ public class ScraperActivity extends AppCompatActivity  {
 
     public void startBtTimeout() {
         setProgressBarValues();
-        countDownTimer.start();
+        Intent countDownService = new Intent(this,BroadcastService.class);
+        countDownService.putExtra("max",btTimeout);
+        countDownService.putExtra("n_title","Proximity lost");
+        countDownService.putExtra("n_text","Stopping scrape in ");
+        countDownService.putExtra("n_summary","Bluetooth Proximit to your car was lost. You configured to turn off scraping when this happens");
+        startForegroundService(countDownService);
     }
 
     public void stopBtTimeout() {
+        Intent countDownService = new Intent(this,BroadcastService.class);
+        stopService(countDownService);
         mpbBtTimeout.setProgress(0);
-        countDownTimer.cancel();
+    }
+
+    private BroadcastReceiver br = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            updateGUI(intent);
+        }
+    };
+
+    private void updateGUI(Intent intent) {
+        if (intent.getExtras() != null) {
+            if (intent.getExtras().getBoolean("finnished")) {
+                //setScraper(true);
+                mpbBtTimeout.setProgress(0);
+            } else {
+                long millisUntilFinished = intent.getLongExtra("countdown", 0);
+                Log.i(TAG, "Countdown seconds remaining: " +  millisUntilFinished / 1000);
+                int progress = (int) millisUntilFinished / interval;
+                mpbBtTimeout.setProgress(mpbBtTimeout.getMax() - progress);
+            }
+        }
     }
 
 
@@ -335,7 +345,6 @@ public class ScraperActivity extends AppCompatActivity  {
         apiUrl = getapiUrl();
         apiKey = getapiKey();
         getBtTimeout();
-        initCountdown(btTimeout);
     }
 
     public void launchSettings(){
@@ -632,7 +641,6 @@ public class ScraperActivity extends AppCompatActivity  {
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                //serverResp.setText("Error getting response");
                 Log.e("POST Error", "Post error: " + error.getMessage());
             }
         }) {
@@ -656,7 +664,7 @@ public class ScraperActivity extends AppCompatActivity  {
                 doPoll();
             }
         }, 100);
-        doPoll();
+        //        doPoll();
     }
 
     private void switchScraper() {
@@ -670,16 +678,19 @@ public class ScraperActivity extends AppCompatActivity  {
 
         if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
             Log.i("btDevice", "ACL Connect Device: "+device.getName() + " " + device.getAddress());
+            //todo: proximity get trigger mandatory if disable checked?
+            if (mDisableBTProxmity.isChecked()) {
+                stopBtTimeout();
+            }
             if ((device.getName().equals(getBtName())) & mEnableBTProxmity.isChecked()) {
                 Toast toast = Toast.makeText(getApplicationContext(),
                         "Proximity Detected...",
                         Toast.LENGTH_SHORT);
                 toast.show();
-                notifySmartscrape("Proximity detected","Proximity to your car detected. Starting Scrape."
-                        ,"Bluetooth Proximit to your car ist detected. You configured to turn on scraping when this happens"
+                notifySmartscrape("Proximity detected","Starting Scrape."
+                        ,"Bluetooth Proximity to your car ist detected. You configured to turn on scraping when this happens"
                         ,10);
                 setScraper(false);
-                stopBtTimeout();
             }
         }
         if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
@@ -690,9 +701,6 @@ public class ScraperActivity extends AppCompatActivity  {
                         "Proximity lost detected...",
                         Toast.LENGTH_SHORT);
                 toast.show();
-                notifySmartscrape("Proximity lost","Proximity to your Car was lost. Stopping scrape."
-                        ,"Bluetooth Proximit to your car was lost. You configured to turn off scraping when this happens"
-                        ,0);
                 startBtTimeout();
             }
         }
