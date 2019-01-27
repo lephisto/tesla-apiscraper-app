@@ -152,6 +152,15 @@ public class ScraperActivity extends AppCompatActivity  {
                 switchScraper();
             }
         });
+        mpbBtTimeout.setOnLongClickListener(new View.OnLongClickListener() {
+            public boolean onLongClick(View view) {
+                if (((ProgressBar)view).getProgress() != 0) {
+                    ScraperActivity.getInstance().stopBtTimeout();
+                    setScraper(false);
+                }
+                return true;
+            }
+        });
 
         mEnablePolling.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
