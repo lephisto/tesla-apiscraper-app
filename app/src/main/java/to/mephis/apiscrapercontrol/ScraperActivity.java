@@ -305,7 +305,11 @@ public class ScraperActivity extends AppCompatActivity  {
         countDownService.putExtra("n_title","Proximity lost");
         countDownService.putExtra("n_text","Stopping scrape in ");
         countDownService.putExtra("n_summary","Bluetooth Proximit to your car was lost. You configured to turn off scraping when this happens");
-        startForegroundService(countDownService);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            startService(countDownService);
+        } else {
+            startForegroundService(countDownService);
+        }
     }
 
     public void stopBtTimeout() {
