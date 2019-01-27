@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
@@ -12,6 +13,7 @@ import android.widget.EditText;
 public class Settings extends AppCompatActivity {
 
     private EditText mBtName;
+    private EditText mBtTimeout;
     private EditText mApiUrl;
     private EditText mApiKey;
 
@@ -28,9 +30,11 @@ public class Settings extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
 
         mBtName = (EditText) findViewById(R.id.btMac);
+        mBtTimeout = (EditText) findViewById(R.id.btTimeout);
         mApiUrl = (EditText) findViewById(R.id.apiurl);
         mApiKey = (EditText) findViewById(R.id.apikey);
         mBtName.setText(getIntent().getStringExtra("btname"));
+        mBtTimeout.setText(getIntent().getStringExtra("bttimeout"));
         mApiUrl.setText(getIntent().getStringExtra("apiurl"));
         mApiKey.setText(getIntent().getStringExtra("apikey"));
 
@@ -73,6 +77,8 @@ public class Settings extends AppCompatActivity {
         //Save Settings
         String btmac = mBtName.getText().toString();
         writeSharedPrefString(getIntent().getStringExtra("pref_btMac"),btmac,"myStore");
+        String bttimeout = mBtTimeout.getText().toString();
+        writeSharedPrefString(getIntent().getStringExtra("pref_btTimeout"),bttimeout,"myStore");
         String apiurl = mApiUrl.getText().toString();
         writeSharedPrefString(getIntent().getStringExtra("pref_apiUrl"),apiurl,"myStore");
         String apikey = mApiKey.getText().toString();
@@ -83,6 +89,5 @@ public class Settings extends AppCompatActivity {
         SharedPreferences.Editor editor = getSharedPreferences(pref,0).edit();
         editor.putString(store,value);
         editor.commit();
-
     }
 }

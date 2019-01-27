@@ -78,6 +78,7 @@ public class ScraperActivity extends AppCompatActivity  {
 
     // Set Keys for Prefstore
     public static final String pref_btMac = "btMac";
+    public static final String pref_btTimeout = "btTimeout";
     public static final String pref_apiUrl = "apiUrl";
     public static final String pref_apiKey = "apiKey";
     public static final String pref_Polling = "polling";
@@ -88,6 +89,7 @@ public class ScraperActivity extends AppCompatActivity  {
     public static String apiUrl = "";
     public static String apiKey = "";
     public static boolean disableScraping = false;
+    public static int btTimeout;
     public static String carAsleep = "unknown";
     public static Long lastPoll;
     public static Resources mResources;
@@ -103,7 +105,6 @@ public class ScraperActivity extends AppCompatActivity  {
     private NotificationManager mNotificationManager;
 
     CountDownTimer countDownTimer;
-    int time = 4 * 60 * 1000; // 4 minutes
     int interval = 1000; // 1 second
 
     //toolbar
@@ -209,7 +210,7 @@ public class ScraperActivity extends AppCompatActivity  {
             }
         });
 
-        countDownTimer = new CountDownTimer(time, interval) {
+        countDownTimer = new CountDownTimer(btTimeout * interval, interval) {
             public void onTick(long millisUntilFinished) {
                 //tvTimer.setText(getDateFromMillis(millisUntilFinished));
                 int progress = (int) millisUntilFinished / interval;
@@ -296,8 +297,8 @@ public class ScraperActivity extends AppCompatActivity  {
     }
 
     private void setProgressBarValues() {
-        mpbBtTimeout.setMax(time / interval);
-        mpbBtTimeout.setProgress(time / interval);
+        mpbBtTimeout.setMax(btTimeout);
+        mpbBtTimeout.setProgress(btTimeout);
     }
 
     public void startBtTimeout() {
@@ -321,14 +322,17 @@ public class ScraperActivity extends AppCompatActivity  {
     public void loadSettings() {
         apiUrl = getapiUrl();
         apiKey = getapiKey();
+        getBtTimeout();
     }
 
     public void launchSettings(){
         Intent intent = new Intent(this, Settings.class);
         intent.putExtra("pref_btMac",pref_btMac);
+        intent.putExtra("pref_btTimeout",pref_btTimeout);
         intent.putExtra("pref_apiUrl",pref_apiUrl);
         intent.putExtra("pref_apiKey",pref_apiKey);
         intent.putExtra("btname",getBtName());
+        intent.putExtra("bttimeout",getBtTimeout());
         intent.putExtra("apiurl",getapiUrl());
         intent.putExtra("apikey",getapiKey());
         startActivityForResult(intent,1);
@@ -409,6 +413,14 @@ public class ScraperActivity extends AppCompatActivity  {
     {
         SharedPreferences sp = getSharedPreferences(pref_btMac,0);
         String str = sp.getString("myStore","00:00:00:00:00:00");
+        return str;
+    }
+
+    public String getBtTimeout()
+    {
+        SharedPreferences sp = getSharedPreferences(pref_btTimeout,0);
+        String str = sp.getString("myStore","240"); // default 4 minutes
+        btTimeout = Integer.parseInt(str);
         return str;
     }
 
