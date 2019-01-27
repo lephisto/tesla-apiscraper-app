@@ -212,24 +212,13 @@ public class ScraperActivity extends AppCompatActivity  {
                             "Deactivate on Proximity lost disabled",
                             Toast.LENGTH_SHORT);
                     toast.show();
-                    stopBtTimeout();
+                    //stopBtTimeout();
                     mpbBtTimeout.setProgress(0);
                 }
                 writeStopOnProximityLost(isChecked);
             }
         });
 
-        countDownTimer = new CountDownTimer(btTimeout * interval, interval) {
-            public void onTick(long millisUntilFinished) {
-                //tvTimer.setText(getDateFromMillis(millisUntilFinished));
-                int progress = (int) millisUntilFinished / interval;
-                mpbBtTimeout.setProgress(mpbBtTimeout.getMax() - progress);
-            }
-            public void onFinish() {
-                setScraper(false);
-                mpbBtTimeout.setProgress(0);
-            }
-        };
 
         mLoginFormView = findViewById(R.id.main_scrollview);
 
@@ -265,6 +254,20 @@ public class ScraperActivity extends AppCompatActivity  {
         scheduleAlarm();
     }
 
+    private void initCountdown(Integer seconds) {
+        countDownTimer = new CountDownTimer(seconds * interval, interval) {
+            public void onTick(long millisUntilFinished) {
+                //tvTimer.setText(getDateFromMillis(millisUntilFinished));
+                int progress = (int) millisUntilFinished / interval;
+                mpbBtTimeout.setProgress(mpbBtTimeout.getMax() - progress);
+            }
+            public void onFinish() {
+                setScraper(true);
+                mpbBtTimeout.setProgress(0);
+            }
+        };
+
+    }
 
     private void notifySmartscrape(String title, String Text, String Summary, Integer timeoutSecs) {
 
@@ -316,8 +319,8 @@ public class ScraperActivity extends AppCompatActivity  {
     }
 
     public void stopBtTimeout() {
-        countDownTimer.cancel();
         mpbBtTimeout.setProgress(0);
+        countDownTimer.cancel();
     }
 
 
@@ -332,6 +335,7 @@ public class ScraperActivity extends AppCompatActivity  {
         apiUrl = getapiUrl();
         apiKey = getapiKey();
         getBtTimeout();
+        initCountdown(btTimeout);
     }
 
     public void launchSettings(){
@@ -674,8 +678,8 @@ public class ScraperActivity extends AppCompatActivity  {
                 notifySmartscrape("Proximity detected","Proximity to your car detected. Starting Scrape."
                         ,"Bluetooth Proximit to your car ist detected. You configured to turn on scraping when this happens"
                         ,10);
+                setScraper(false);
                 stopBtTimeout();
-                setScraper(true);
             }
         }
         if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(intent.getAction())
@@ -689,8 +693,6 @@ public class ScraperActivity extends AppCompatActivity  {
                 notifySmartscrape("Proximity lost","Proximity to your Car was lost. Stopping scrape."
                         ,"Bluetooth Proximit to your car was lost. You configured to turn off scraping when this happens"
                         ,0);
-                setScraper(false);
-                setProgressBarValues();
                 startBtTimeout();
             }
         }
