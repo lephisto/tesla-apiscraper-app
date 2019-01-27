@@ -621,6 +621,9 @@ public class ScraperActivity extends AppCompatActivity  {
         };
         requestQueue.add(jsonObjectRequest);
 
+        // Since the user initiated an action, we need to cancel all delayed actions as invalid
+        ScraperActivity.getInstance().stopBtTimeout();
+
         //Give API 100ms to accomodate..
         new Handler().postDelayed(new Runnable() {
             @Override
