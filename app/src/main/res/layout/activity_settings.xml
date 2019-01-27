@@ -57,6 +57,21 @@
                 android:layout_height="match_parent">
 
                 <AutoCompleteTextView
+                    android:id="@+id/btTimeout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="BT disconnect to disable scraping time"
+                    android:inputType="number"
+                    android:maxLines="1"
+                    android:singleLine="true" />
+
+            </android.support.design.widget.TextInputLayout>
+
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <AutoCompleteTextView
                     android:id="@+id/apiurl"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
