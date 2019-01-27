@@ -7,13 +7,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.SeekBar;
 
 public class Settings extends AppCompatActivity {
 
     private EditText mBtName;
     private EditText mBtTimeout;
+    private SeekBar mBtSeekbar;
     private EditText mApiUrl;
     private EditText mApiKey;
 
@@ -29,12 +32,17 @@ public class Settings extends AppCompatActivity {
         instance = this;
         setContentView(R.layout.activity_settings);
 
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
         mBtName = (EditText) findViewById(R.id.btMac);
         mBtTimeout = (EditText) findViewById(R.id.btTimeout);
         mApiUrl = (EditText) findViewById(R.id.apiurl);
         mApiKey = (EditText) findViewById(R.id.apikey);
+        mBtSeekbar = (SeekBar) findViewById(R.id.seekBarBTTimeout);
+
         mBtName.setText(getIntent().getStringExtra("btname"));
         mBtTimeout.setText(getIntent().getStringExtra("bttimeout"));
+        mBtSeekbar.setProgress(Integer.parseInt(getIntent().getStringExtra("bttimeout")));
         mApiUrl.setText(getIntent().getStringExtra("apiurl"));
         mApiKey.setText(getIntent().getStringExtra("apikey"));
 
@@ -51,6 +59,29 @@ public class Settings extends AppCompatActivity {
             }
         });
 
+        mBtSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                set_btTimeout(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+
+    }
+
+    private void set_btTimeout(int howMany) {
+        String newval = String.valueOf(howMany);
+        mBtTimeout.setText(newval);
     }
 
     // react on Android Back Button

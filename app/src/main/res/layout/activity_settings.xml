@@ -60,12 +60,20 @@
                     android:id="@+id/btTimeout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="BT disconnect to disable scraping time"
+                    android:hint="BT disconnect: Seconds till disable scraping"
                     android:inputType="number"
                     android:maxLines="1"
                     android:singleLine="true" />
 
             </android.support.design.widget.TextInputLayout>
+
+            <SeekBar
+                android:id="@+id/seekBarBTTimeout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="360"
+                android:paddingTop="15dp"
+                android:paddingBottom="30dp" />
 
             <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
