@@ -47,9 +47,10 @@
 
             <ProgressBar
                 android:id="@+id/prgProximityTimeout"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"/>
+                android:longClickable="true" />
 
             <Button
                 android:id="@+id/btn_scraperStatus"
