@@ -249,7 +249,9 @@ public class ScraperActivity extends AppCompatActivity  {
         if (mpbBtTimeout.getProgress()>0) {
             doPoll();
         }
-        scheduleAlarm();
+        if (mEnablePolling.isChecked()) {
+            scheduleAlarm();
+        }
     }
 
     private void notifySmartscrape(String title, String Text, String Summary, Integer timeoutSecs) {
