@@ -14,6 +14,7 @@ import android.content.res.Resources;
 import android.os.Build;
 import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 
 
@@ -93,6 +94,7 @@ public class ScraperActivity extends AppCompatActivity  {
     public static Long lastPoll;
     public static Resources mResources;
     private static TableLayout mTblData;
+    private static SwipeRefreshLayout swipeLayout;
 
     // UI references.
     private Button mBtnScraperState;
@@ -138,6 +140,15 @@ public class ScraperActivity extends AppCompatActivity  {
         mDisableBTProxmity = (Switch) findViewById(R.id.swEnableBTProximityLost);
         mpbBtTimeout = (ProgressBar) findViewById(R.id.prgProximityTimeout);
         mTblData = (TableLayout) findViewById(R.id.tblData);
+
+        swipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_container);
+        swipeLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Log.e("debug","refresh");
+                doPoll();
+            }
+        });
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
@@ -224,7 +235,7 @@ public class ScraperActivity extends AppCompatActivity  {
         if (mEnablePolling.isChecked()) {
             doPoll();
         } else {
-            mBtnScraperState.setText("Polling disabled..");
+            mBtnScraperState.setText("Automated Polling disabled, swipe to refresh");
         }
         mEnableBTProxmity.setChecked(getStartOnProximity());
         mDisableBTProxmity.setChecked(getStopOnProximityLost());
@@ -338,7 +349,6 @@ public class ScraperActivity extends AppCompatActivity  {
             }
         }
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -623,6 +633,7 @@ public class ScraperActivity extends AppCompatActivity  {
             lastPoll = System.currentTimeMillis();
         } finally {
             //
+            swipeLayout.setRefreshing(false);
         }
     }
 
@@ -670,7 +681,7 @@ public class ScraperActivity extends AppCompatActivity  {
                 doPoll();
             }
         }, 100);
-        //        doPoll();
+        doPoll();
     }
 
     private void switchScraper() {
