@@ -523,7 +523,7 @@ public class ScraperActivity extends AppCompatActivity  {
         mTblData.removeAllViews();
         SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
         List<String> hideItems = Arrays.asList("apikey");
-        List<String> asDate = Arrays.asList("disabledsince");
+        List<String> asDate = Arrays.asList("disabled_since", "lastdatafromtesla");
         Iterator<?> iterator = jsonData.keys();
         while (iterator.hasNext()) {
             TableRow row = new TableRow(getInstance());
@@ -535,10 +535,14 @@ public class ScraperActivity extends AppCompatActivity  {
                     TextView col2 = new TextView(getInstance());
                     col1.setText(key.toString());
                     if (asDate.contains(key)) {
-                        long unixSeconds = Long.parseLong(value.toString());
-                        Date date = new Date(unixSeconds*1000L);
-                        String formattedDate = sdf.format(date);
-                        col2.setText(formattedDate);
+                        if ((int) value > 0) {
+                            long unixSeconds = Long.parseLong(value.toString());
+                            Date date = new Date(unixSeconds * 1000L);
+                            String formattedDate = sdf.format(date);
+                            col2.setText(formattedDate);
+                        } else {
+                            col2.setText("unknown");
+                        }
                     } else {
                         col2.setText(value.toString());
                     }
