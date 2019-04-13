@@ -40,6 +40,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -385,6 +386,7 @@ public class ScraperActivity extends AppCompatActivity  {
                 String result=data.getStringExtra("result");
                 Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
                 loadSettings();
+                doPoll();
             }
             /**if (resultCode == RESULT_CANCELED) {
                 String result=data.getStringExtra("result");
@@ -629,6 +631,7 @@ public class ScraperActivity extends AppCompatActivity  {
                     return headers;
                 }
             };
+            jsonArrayRequest.setRetryPolicy(new DefaultRetryPolicy(3000,20,DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
             requestQueue.add(jsonArrayRequest);
             lastPoll = System.currentTimeMillis();
         } finally {
@@ -669,6 +672,7 @@ public class ScraperActivity extends AppCompatActivity  {
                 return headers;
             }
         };
+        jsonObjectRequest.setRetryPolicy(new DefaultRetryPolicy(3000,20,DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         requestQueue.add(jsonObjectRequest);
 
         // Since the user initiated an action, we need to cancel all delayed actions as invalid
